@@ -7,7 +7,8 @@ import Data.List
 -- https://en.wikipedia.org/wiki/Pythagorean_triple
 -- List is ordered by x,y,z in ascending order, contains also primitive triples
 pythagoreanTriples :: [(Integer, Integer, Integer)]
-pythagoreanTriples = undefined
+pythagoreanTriples = [(x,y,z) | z <- [1..], y <- [1..z], x <- [1..y], x^2 + y^2 == z^2]
+-- we had to put there the end condition for lists, otherwise we will get a duplicates like 3 4 5 and 4 3 5
 
 -- TODO: create identity matrix (1 on main diagonal, 0 otherwise)
 -- TODO: use list comprehension!
