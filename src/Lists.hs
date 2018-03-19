@@ -16,7 +16,7 @@ pythagoreanTriples = [(x,y,z) | z <- [1..], y <- [1..z], x <- [1..y], x^2 + y^2 
 -- Note: sublists are rows
 eyeMatrix :: Num a => Int -> [[a]]
 eyeMatrix 0 = [[]]
-eyeMatrix n = [ [ fromIntegral (fromEnum $ i == j) | i <- [1..n]] | j <- [1..n]] 
+eyeMatrix n = [ [ fromIntegral (fromEnum (i == j)) | i <- [1..n]] | j <- [1..n]] 
 
 -- TODO: multiply matrices x and y
 -- TODO: use list comprehension!
