@@ -4,6 +4,8 @@ import qualified Data.Map as Map
 import qualified Data.Sequence as Seq
 import qualified Data.Stack as Stack
 
+import qualified Data.ByteString.Char8 as C
+
 import Control.Program
 
 -- | Input is sequence of values (type Value is defined in Control.Program)
@@ -23,6 +25,22 @@ type ComputerStack = Stack.Stack (Either Address Value)
 -- | If there is a problem, error is raised ("Empty stack", "Not value", "Not address", "No input", "Unknown label", "Division by 0", "Uninitialized memory"), see tests
 -- TODO: implement running the program
 runProgram :: Program -> Input -> Output
-runProgram = undefined
+runProgram (EOP) input = input 
+runProgram ((TA add) `Then` prg) input = runProgram prg input
+runProgram ((TV val) `Then` prg) input = undefined
+runProgram (DR `Then` prg) input = undefined
+runProgram (ST `Then` prg) input = undefined
+runProgram (WR `Then` prg) input = undefined
+runProgram (RD `Then` prg) input = undefined
+runProgram (AD `Then` prg) input = undefined
+runProgram (SB `Then` prg) input = undefined
+runProgram (MT `Then` prg) input = undefined
+runProgram (DI `Then` prg) input = undefined
+runProgram ((JU lbl) `Then` prg) input = undefined
+runProgram ((JZ lbl) `Then` prg) input = undefined
+runProgram (lbl `Marks` prg) input = undefined
+
 
 -- Feel free to create more helper functions
+--pushToStack :: (Either Address Value) -> Input -> Output
+--pushToStack a input = 
