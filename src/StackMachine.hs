@@ -25,31 +25,33 @@ type ComputerStack = Stack.Stack (Either Address Value)
 -- | If there is a problem, error is raised ("Empty stack", "Not value", "Not address", "No input", "Unknown label", "Division by 0", "Uninitialized memory"), see tests
 -- TODO: implement running the program
 runProgram :: Program -> Input -> Output
---runProgram prg inp = programRunner Stack.empty Map.empty Map.empty prg inp
-
-runProgram (EOP) input = input 
-runProgram ((TA add) `Then` prg) input = runProgram prg (stackToInput (pushToStack (Left add)) input)
-runProgram ((TV val) `Then` prg) input = runProgram prg (stackToInput (pushToStack (Right val)) input)
-runProgram (DR `Then` prg) input = undefined
-runProgram (ST `Then` prg) input = undefined
-runProgram (WR `Then` prg) input = undefined
-runProgram (RD `Then` prg) input = undefined
-runProgram (AD `Then` prg) input = undefined
-runProgram (SB `Then` prg) input = undefined
-runProgram (MT `Then` prg) input = undefined
-runProgram (DI `Then` prg) input = undefined
-runProgram ((JU lbl) `Then` prg) input = undefined
-runProgram ((JZ lbl) `Then` prg) input = undefined
-runProgram (lbl `Marks` prg) input = undefined
-
+runProgram prg inp = programRunner Stack.empty Map.empty Map.empty prg inp Seq.empty
 
 -- Feel free to create more helper functions
---programRunner :: ComputerStack -> Memory -> SubprogramDir -> Program -> Input -> Output
+programRunner :: ComputerStack -> Memory -> SubprogramDir -> Program -> Input -> Output -> Output
+programRunner s m d (EOP) inp outp = outp 
+programRunner s m d ((TA add) `Then` prg) inp outp = programRunner (Stack.push (Left add) s) m d prg inp outp
+programRunner s m d ((TV val) `Then` prg) inp outp = programRunner (Stack.push (Right val) s) m d prg inp outp
+programRunner s m d (DR `Then` prg) inp outp = undefined
+programRunner s m d (ST `Then` prg) inp outp = undefined
+programRunner s m d (WR `Then` prg) inp outp = programRunner (Stack.pop s) m d prg inp noutp
+    where 
+        noutp = case (Stack.top s) of
+            (Left _) -> error "Not value"
+            (Right val) -> outp Seq.|> val 
 
-stackToInput :: ComputerStack -> Input -> Output
-stackToInput _ input = input 
+programRunner s m d (RD `Then` prg) inp outp 
+    | inp == Seq.empty = error "No input"
+    | otherwise = programRunner (Stack.push (Right nv) s) m d prg (Seq.drop 1 inp) outp
+        where
+            nv = case Seq.null inp of
+                True -> error "No input"
+                False -> Seq.index inp 0
 
-pushToStack :: (Either Address Value) -> ComputerStack
-pushToStack a = Stack.push a Stack.empty
-
-
+programRunner s m d (AD `Then` prg) inp outp = undefined
+programRunner s m d (SB `Then` prg) inp outp = undefined
+programRunner s m d (MT `Then` prg) inp outp = undefined
+programRunner s m d (DI `Then` prg) inp outp = undefined
+programRunner s m d ((JU lbl) `Then` prg) inp outp = undefined
+programRunner s m d ((JZ lbl) `Then` prg) inp outp = undefined
+programRunner s m d (lbl `Marks` prg) inp outp = undefined
