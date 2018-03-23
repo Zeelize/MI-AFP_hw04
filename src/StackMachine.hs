@@ -32,8 +32,10 @@ programRunner :: ComputerStack -> Memory -> SubprogramDir -> Program -> Input ->
 programRunner s m d (EOP) inp outp = outp 
 programRunner s m d ((TA add) `Then` prg) inp outp = programRunner (Stack.push (Left add) s) m d prg inp outp
 programRunner s m d ((TV val) `Then` prg) inp outp = programRunner (Stack.push (Right val) s) m d prg inp outp
+
 programRunner s m d (DR `Then` prg) inp outp = undefined
 programRunner s m d (ST `Then` prg) inp outp = undefined
+
 programRunner s m d (WR `Then` prg) inp outp = programRunner (Stack.pop s) m d prg inp noutp
     where 
         noutp = case (Stack.top s) of
@@ -44,11 +46,10 @@ programRunner s m d (RD `Then` prg) inp outp
     | inp == Seq.empty = error "No input"
     | otherwise = programRunner (Stack.push (Right nv) s) m d prg (Seq.drop 1 inp) outp
         where
-            nv = case Seq.null inp of
-                True -> error "No input"
-                False -> Seq.index inp 0
+            nv = Seq.index inp 0
 
 programRunner s m d (AD `Then` prg) inp outp = undefined
+
 programRunner s m d (SB `Then` prg) inp outp = undefined
 programRunner s m d (MT `Then` prg) inp outp = undefined
 programRunner s m d (DI `Then` prg) inp outp = undefined
