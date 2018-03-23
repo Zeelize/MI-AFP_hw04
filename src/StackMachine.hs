@@ -25,9 +25,11 @@ type ComputerStack = Stack.Stack (Either Address Value)
 -- | If there is a problem, error is raised ("Empty stack", "Not value", "Not address", "No input", "Unknown label", "Division by 0", "Uninitialized memory"), see tests
 -- TODO: implement running the program
 runProgram :: Program -> Input -> Output
+--runProgram prg inp = programRunner Stack.empty Map.empty Map.empty prg inp
+
 runProgram (EOP) input = input 
-runProgram ((TA add) `Then` prg) input = runProgram prg input
-runProgram ((TV val) `Then` prg) input = undefined
+runProgram ((TA add) `Then` prg) input = runProgram prg (stackToInput (pushToStack (Left add)) input)
+runProgram ((TV val) `Then` prg) input = runProgram prg (stackToInput (pushToStack (Right val)) input)
 runProgram (DR `Then` prg) input = undefined
 runProgram (ST `Then` prg) input = undefined
 runProgram (WR `Then` prg) input = undefined
@@ -42,5 +44,12 @@ runProgram (lbl `Marks` prg) input = undefined
 
 
 -- Feel free to create more helper functions
---pushToStack :: (Either Address Value) -> Input -> Output
---pushToStack a input = 
+--programRunner :: ComputerStack -> Memory -> SubprogramDir -> Program -> Input -> Output
+
+stackToInput :: ComputerStack -> Input -> Output
+stackToInput _ input = input 
+
+pushToStack :: (Either Address Value) -> ComputerStack
+pushToStack a = Stack.push a Stack.empty
+
+
