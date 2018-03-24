@@ -33,27 +33,26 @@ programRunner s m d (EOP) inp outp = outp
 programRunner s m d ((TA add) `Then` prg) inp outp = programRunner (Stack.push (Left add) s) m d prg inp outp
 programRunner s m d ((TV val) `Then` prg) inp outp = programRunner (Stack.push (Right val) s) m d prg inp outp
 
-programRunner s m d (DR `Then` prg) inp outp = programRunner (Stack.push (Right val) ns) m d prg inp outp
-    where 
-        add = topThatAddress s
-        ns = Stack.pop s
-        val = takeValueFromMemory add m
-            where
-                takeValueFromMemory :: Address -> Memory -> Value
-                takeValueFromMemory a mem = case mem Map.!? a of
-                    Nothing -> error "Uninitialized memory"
-                    Just v -> v 
-
-programRunner s m d (ST `Then` prg) inp outp = programRunner (Stack.pop ns) nm d prg inp outp
+programRunner s m d (DR `Then` prg) inp outp = case topThatAddress s of
+    Left err -> err
+    Right add -> case takeValueFromMemory add m of
+        Left err -> err
+        Right val -> programRunner (Stack.push (Right val) (Stack.pop s)) m d prg inp outp
     where
-        val = topThatValue s
-        ns = Stack.pop s
-        add = topThatAddress ns
-        nm = Map.insert add val m
+        takeValueFromMemory :: Address -> Memory -> Either Output Value
+        takeValueFromMemory a mem = case mem Map.!? a of
+            Nothing -> Left (error "Uninitialized memory")
+            Just v -> Right v 
+
+programRunner s m d (ST `Then` prg) inp outp = case topThatValue s of
+    Left err -> err
+    Right val -> case topThatAddress (Stack.pop s) of
+        Left err -> err
+        Right add -> programRunner (Stack.pop (Stack.pop s)) (Map.insert add val m) d prg inp outp
 
 programRunner s m d (WR `Then` prg) inp outp = programRunner (Stack.pop s) m d prg inp noutp
     where 
-        noutp = case topThatValue2 s of 
+        noutp = case topThatValue s of 
             Left err -> err
             Right val -> outp Seq.|> val 
 
@@ -86,11 +85,12 @@ programRunner s m d ((JU lbl) `Then` prg) inp outp = programRunner s m nd nprg i
             Nothing -> error "Unknown label"
             Just p -> p
 
-programRunner s m d ((JZ lbl) `Then` prg) inp outp 
-    | val == 0 = programRunner ns m d nprg inp outp
-    | otherwise = programRunner ns m d prg inp outp
+programRunner s m d ((JZ lbl) `Then` prg) inp outp = case topThatValue s of
+    Left err -> err
+    Right val -> case val == 0 of
+        True -> programRunner ns m d nprg inp outp
+        False -> programRunner ns m d prg inp outp
     where 
-        val = topThatValue s
         ns = Stack.pop s
         nprg =  (JU lbl) `Then` prg
 
@@ -99,34 +99,22 @@ programRunner s m d (lbl `Marks` prg) inp outp = programRunner s m nd prg inp ou
         nd = Map.insert lbl prg d
 
 -- Another helper functions
-topThatValue :: ComputerStack -> Value
+topThatValue :: ComputerStack -> Either Output Value
 topThatValue s = case (Stack.topSafe s) of
-                    Nothing -> error "Empty stack"
-                    Just (Left _) -> error "Not value" 
-                    Just (Right val) -> val 
-
-topThatAddress :: ComputerStack -> Address
-topThatAddress s = case (Stack.topSafe s) of
-                    Nothing -> error "Empty stack"
-                    Just (Left add) -> add 
-                    Just (Right _) -> error "Not address"  
-                                     
-topThatValue2 :: ComputerStack -> Either Output Value
-topThatValue2 s = case (Stack.topSafe s) of
                     Nothing -> Left (error "Empty stack")
                     Just (Left _) -> Left (error "Not value" )
                     Just (Right val) -> Right val 
 
-topThatAddress2 :: ComputerStack -> Either Output Address
-topThatAddress2 s = case (Stack.topSafe s) of
+topThatAddress :: ComputerStack -> Either Output Address
+topThatAddress s = case (Stack.topSafe s) of
                     Nothing -> Left (error "Empty stack")
                     Just (Left add) -> Right add 
                     Just (Right _) -> Left (error "Not address")  
                     
 mathCalculator :: ComputerStack -> Int -> Either Output ComputerStack
-mathCalculator s flag = case topThatValue2 s of
+mathCalculator s flag = case topThatValue s of
                     Left err -> Left err
-                    Right val1 -> case topThatValue2 (Stack.pop s) of
+                    Right val1 -> case topThatValue (Stack.pop s) of
                         Left err -> Left err
                         Right val2 -> case mathSolver val1 val2 flag of
                             Left err -> Left err
