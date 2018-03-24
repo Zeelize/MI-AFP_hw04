@@ -53,7 +53,9 @@ programRunner s m d (ST `Then` prg) inp outp = programRunner (Stack.pop ns) nm d
 
 programRunner s m d (WR `Then` prg) inp outp = programRunner (Stack.pop s) m d prg inp noutp
     where 
-        noutp = outp Seq.|> (topThatValue s) 
+        noutp = case topThatValue2 s of 
+            Left err -> err
+            Right val -> outp Seq.|> val 
 
 programRunner s m d (RD `Then` prg) inp outp 
     | inp == Seq.empty = error "No input"
@@ -61,37 +63,21 @@ programRunner s m d (RD `Then` prg) inp outp
         where
             nv = Seq.index inp 0
 
-programRunner s m d (AD `Then` prg) inp outp = programRunner nss m d prg inp outp
-    where
-        val1 = topThatValue s
-        ns = Stack.pop s
-        val2 = topThatValue ns
-        nss = Stack.push (Right (val1 + val2)) (Stack.pop ns)        
+programRunner s m d (AD `Then` prg) inp outp = case mathCalculator s 0 of
+    Left err -> err
+    Right ns -> programRunner ns m d prg inp outp
 
-programRunner s m d (SB `Then` prg) inp outp = programRunner nss m d prg inp outp
-    where
-        val1 = topThatValue s
-        ns = Stack.pop s
-        val2 = topThatValue ns
-        nss = Stack.push (Right (val1 - val2)) (Stack.pop ns)        
+programRunner s m d (SB `Then` prg) inp outp = case mathCalculator s 1 of
+    Left err -> err
+    Right ns -> programRunner ns m d prg inp outp
 
-programRunner s m d (MT `Then` prg) inp outp = programRunner nss m d prg inp outp
-    where
-        val1 = topThatValue s
-        ns = Stack.pop s
-        val2 = topThatValue ns
-        nss = Stack.push (Right (val1 * val2)) (Stack.pop ns)        
+programRunner s m d (MT `Then` prg) inp outp = case mathCalculator s 2 of
+    Left err -> err
+    Right ns -> programRunner ns m d prg inp outp
 
-programRunner s m d (DI `Then` prg) inp outp = programRunner nss m d prg inp outp
-    where
-        val1 = topThatValue s
-        ns = Stack.pop s
-        val2 = topThatValue ns
-        nss = Stack.push (Right (mDivider val1 val2)) (Stack.pop ns)
-            where 
-                mDivider :: Value -> Value -> Value
-                mDivider _ 0 = error "Division by 0"
-                mDivider a b = div a b
+programRunner s m d (DI `Then` prg) inp outp = case mathCalculator s 3 of
+    Left err -> err
+    Right ns -> programRunner ns m d prg inp outp
 
 programRunner s m d ((JU lbl) `Then` prg) inp outp = programRunner s m nd nprg inp outp
     where 
@@ -125,6 +111,34 @@ topThatAddress s = case (Stack.topSafe s) of
                     Just (Left add) -> add 
                     Just (Right _) -> error "Not address"  
                                      
+topThatValue2 :: ComputerStack -> Either Output Value
+topThatValue2 s = case (Stack.topSafe s) of
+                    Nothing -> Left (error "Empty stack")
+                    Just (Left _) -> Left (error "Not value" )
+                    Just (Right val) -> Right val 
+
+topThatAddress2 :: ComputerStack -> Either Output Address
+topThatAddress2 s = case (Stack.topSafe s) of
+                    Nothing -> Left (error "Empty stack")
+                    Just (Left add) -> Right add 
+                    Just (Right _) -> Left (error "Not address")  
+                    
+mathCalculator :: ComputerStack -> Int -> Either Output ComputerStack
+mathCalculator s flag = case topThatValue2 s of
+                    Left err -> Left err
+                    Right val1 -> case topThatValue2 (Stack.pop s) of
+                        Left err -> Left err
+                        Right val2 -> case mathSolver val1 val2 flag of
+                            Left err -> Left err
+                            Right val -> Right (Stack.push (Right val) (Stack.pop (Stack.pop s)))
+                        where
+                            mathSolver :: Value -> Value -> Int -> Either Output Value
+                            mathSolver _ 0 3 = Left (error "Division by 0")
+                            mathSolver a b 0 = Right (a + b)  
+                            mathSolver a b 1 = Right (a - b)  
+                            mathSolver a b 2 = Right (a * b)  
+                            mathSolver a b 3 = Right (div a b)  
+
 findMarking :: SubprogramDir -> Label -> Program -> SubprogramDir
 findMarking d l EOP = d
 findMarking d l (_ `Then` prg) = findMarking d l prg

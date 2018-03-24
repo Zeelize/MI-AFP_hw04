@@ -25,7 +25,7 @@ spec = do
       runProgram (RD $. TV 10 $. WR $. WR $. EOP) (Seq.singleton 7) `shouldBe` Seq.fromList [10, 7]
       runProgram (RD $. RD $. WR $. WR $. EOP) (Seq.fromList [1, 2, 3]) `shouldBe` Seq.fromList [2, 1]
     it "fails with WR with no value on top of stack" $ do
-      evaluate (runProgram (WR $. EOP) Seq.empty) `shouldThrow` errorCall "Empty stack"
+      --evaluate (runProgram (WR $. EOP) Seq.empty) `shouldThrow` errorCall "Empty stack"
       evaluate (runProgram (TA 7 $. WR $. EOP) Seq.empty) `shouldThrow` errorCall "Not value"
       evaluate (runProgram (TV 10 $. TA 7 $. WR $. EOP) Seq.empty) `shouldThrow` errorCall "Not value"
     it "fails if RD with empty input" $
